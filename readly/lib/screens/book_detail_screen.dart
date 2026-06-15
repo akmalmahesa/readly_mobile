@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
+import '../data/app_data.dart';
 import '../data/books_data.dart';
+import 'reading_tracker.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Book book;
@@ -12,44 +14,47 @@ class BookDetailScreen extends StatefulWidget {
 }
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
-  late bool _isSaved;
-
   Book get _sharedBook =>
       allBooks.firstWhere((book) => book.id == widget.book.id);
 
-  @override
-  void initState() {
-    super.initState();
-    _isSaved = widget.book.isSaved;
+  void _toggleSaved(Book book) {
+    AppData.instance.toggleSaved(book.id, !book.isSaved);
   }
 
-  void _toggleSaved() {
-    setState(() {
-      _isSaved = !_isSaved;
-      _sharedBook.isSaved = _isSaved;
-      widget.book.isSaved = _isSaved;
-      libraryVersion.value = libraryVersion.value + 1;
-    });
+  void _startOrUpdateReading(BuildContext context, Book book) {
+    if (book.isReading) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ReadingTrackerPage()),
+      );
+    } else {
+      AppData.instance.updateProgress(book.id, 0, book.pages);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final book = widget.book;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildHeroAppBar(context, book),
-          SliverToBoxAdapter(child: _buildMetaCard(book)),
-          SliverToBoxAdapter(child: _buildAbout(book)),
-          SliverToBoxAdapter(child: _buildTags(book)),
-          if (book.isReading)
-            SliverToBoxAdapter(child: _buildProgressCard(book)),
-          SliverToBoxAdapter(child: _buildActionButtons(book)),
-          SliverToBoxAdapter(child: _buildSimilarBooks(context, book)),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
-      ),
+    return ValueListenableBuilder<int>(
+      valueListenable: libraryVersion,
+      builder: (context, _, _) {
+        final book = _sharedBook;
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: CustomScrollView(
+            slivers: [
+              _buildHeroAppBar(context, book),
+              SliverToBoxAdapter(child: _buildMetaCard(book)),
+              SliverToBoxAdapter(child: _buildAbout(book)),
+              SliverToBoxAdapter(child: _buildTags(book)),
+              if (book.isReading)
+                SliverToBoxAdapter(child: _buildProgressCard(book)),
+              SliverToBoxAdapter(child: _buildActionButtons(context, book)),
+              SliverToBoxAdapter(child: _buildSimilarBooks(context, book)),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -316,14 +321,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   // ── Action buttons ─────────────────────────────────────────────────────────
 
-  Widget _buildActionButtons(Book book) {
+  Widget _buildActionButtons(BuildContext context, Book book) {
+    final isSaved = book.isSaved;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => _startOrUpdateReading(context, book),
               icon: const Icon(Icons.menu_book_outlined, size: 18),
               label: Text(book.isReading ? 'Update Progress' : 'Start Reading'),
               style: ElevatedButton.styleFrom(
@@ -344,21 +350,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: _toggleSaved,
+              onPressed: () => _toggleSaved(book),
               icon: Icon(
-                _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                isSaved ? Icons.bookmark : Icons.bookmark_outline,
                 size: 18,
               ),
-              label: Text(_isSaved ? 'Saved' : 'Add to Library'),
+              label: Text(isSaved ? 'Saved' : 'Add to Library'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _isSaved
+                foregroundColor: isSaved
                     ? AppColors.textPrimary
                     : AppColors.primary,
-                backgroundColor: _isSaved
+                backgroundColor: isSaved
                     ? AppColors.accent
                     : Colors.transparent,
                 side: BorderSide(
-                  color: _isSaved ? AppColors.accent : AppColors.primary,
+                  color: isSaved ? AppColors.accent : AppColors.primary,
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

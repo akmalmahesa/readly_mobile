@@ -5,6 +5,7 @@ import '../data/badges_data.dart';
 import '../data/books_data.dart';
 import '../data/reading_levels.dart';
 import '../data/xp_data.dart';
+import '../services/auth_service.dart';
 import '../widgets/trending_card.dart';
 import 'book_detail_screen.dart';
 
@@ -35,7 +36,7 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTopActions(),
+                  _buildTopActions(context),
                   const SizedBox(height: 18),
                   _buildHeader(level, levelName, completed.length),
                   const SizedBox(height: 16),
@@ -69,27 +70,33 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopActions() {
+  Widget _buildTopActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _roundAction(Icons.share_outlined),
         const SizedBox(width: 10),
-        _roundAction(Icons.settings_outlined),
+        _roundAction(
+          Icons.logout,
+          onTap: () => AuthService.instance.signOut(),
+        ),
       ],
     );
   }
 
-  Widget _roundAction(IconData icon) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.borderColor),
+  Widget _roundAction(IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.borderColor),
+        ),
+        child: Icon(icon, size: 20, color: AppColors.textPrimary),
       ),
-      child: Icon(icon, size: 20, color: AppColors.textPrimary),
     );
   }
 
@@ -112,9 +119,9 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        const Text(
-          'Alex',
-          style: TextStyle(
+        Text(
+          _displayName(),
+          style: const TextStyle(
             fontFamily: 'Georgia',
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -138,6 +145,12 @@ class ProfileScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _displayName() {
+    final email = AuthService.instance.currentUser?.email;
+    if (email == null || email.isEmpty) return 'Reader';
+    return email.split('@').first;
   }
 
   Widget _pill(String text, Color bgColor, Color fgColor) {

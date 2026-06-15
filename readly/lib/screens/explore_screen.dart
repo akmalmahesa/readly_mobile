@@ -79,22 +79,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            if (_query.isNotEmpty)
-              SliverToBoxAdapter(child: _buildSearchResults())
-            else
-              ..._sections.map(
-                (s) => SliverToBoxAdapter(child: _SectionWidget(config: s)),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
-      ),
+    return ValueListenableBuilder<int>(
+      valueListenable: libraryVersion,
+      builder: (context, _, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader()),
+                if (_query.isNotEmpty)
+                  SliverToBoxAdapter(child: _buildSearchResults())
+                else
+                  ..._sections.map(
+                    (s) =>
+                        SliverToBoxAdapter(child: _SectionWidget(config: s)),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -252,8 +258,10 @@ class _SectionWidget extends StatelessWidget {
   final _SectionConfig config;
   const _SectionWidget({super.key, required this.config});
 
-  List<Book> get _books =>
-      config.bookIndices.map((i) => allBooks[i % allBooks.length]).toList();
+  List<Book> get _books {
+    if (allBooks.isEmpty) return [];
+    return config.bookIndices.map((i) => allBooks[i % allBooks.length]).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +292,8 @@ class _SectionWidget extends StatelessWidget {
 
   Widget _buildGrid(BuildContext context) {
     final books = _books;
+    final needed = config.layout == _Layout.grid3 ? 3 : 2;
+    if (books.length < needed) return const SizedBox.shrink();
     switch (config.layout) {
       case _Layout.featured:
         return Row(

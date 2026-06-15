@@ -34,6 +34,25 @@ class Book {
   bool get isReading       => currentPage != null;
   double get progress      => isReading ? currentPage! / pages : 0;
   int get progressPercent  => (progress * 100).round();
+
+  /// Builds a catalog [Book] from a Firestore `books/{bookId}` document.
+  /// Per-user fields default to "not in library" and are filled in later
+  /// from the user's `library` subcollection.
+  factory Book.fromMap(String id, Map<String, dynamic> data) {
+    return Book(
+      id: id,
+      title: data['title'] as String,
+      author: data['author'] as String,
+      description: data['description'] as String,
+      coverUrl: data['coverUrl'] as String,
+      rating: (data['rating'] as num).toDouble(),
+      pages: data['pages'] as int,
+      year: data['year'] as int,
+      origin: data['origin'] as String,
+      genres: List<String>.from(data['genres'] as List),
+      tags: List<String>.from(data['tags'] as List),
+    );
+  }
 }
 
 // ── Badge Model ────────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../data/books_data.dart';
+import '../data/xp_data.dart';
+import '../services/auth_service.dart';
 import '../widgets/continue_reading_card.dart';
 import '../widgets/trending_card.dart';
 import 'book_detail_screen.dart';
@@ -10,25 +12,30 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildTopBar()),
-            SliverToBoxAdapter(child: _buildGreeting()),
-            SliverToBoxAdapter(child: _buildContinueReading(context)),
-            SliverToBoxAdapter(child: _buildTrendingHeader()),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: _buildTrendingGrid(context),
+    return AnimatedBuilder(
+      animation: Listenable.merge([libraryVersion, XpData.totalXp]),
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildTopBar()),
+                SliverToBoxAdapter(child: _buildGreeting()),
+                SliverToBoxAdapter(child: _buildContinueReading(context)),
+                SliverToBoxAdapter(child: _buildTrendingHeader()),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: _buildTrendingGrid(context),
+                ),
+                SliverToBoxAdapter(child: _buildPopularBooksHeader()),
+                SliverToBoxAdapter(child: _buildPopularBooks(context)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
             ),
-            SliverToBoxAdapter(child: _buildPopularBooksHeader()),
-            SliverToBoxAdapter(child: _buildPopularBooks(context)),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -77,16 +84,23 @@ class HomeScreen extends StatelessWidget {
   // ── Greeting + XP ─────────────────────────────────────────────────────────
 
   Widget _buildGreeting() {
+    final email = AuthService.instance.currentUser?.email;
+    final name = (email == null || email.isEmpty) ? 'Reader' : email.split('@').first;
+    final level = XpData.level;
+    final currentLevelXp = XpData.currentLevelXp;
+    final xpNeeded = XpData.xpNeededForNextLevel;
+    final progress = XpData.levelProgress;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Hi, Alex!', style: AppTextStyles.displayTitle),
+          Text('Hi, $name!', style: AppTextStyles.displayTitle),
           const SizedBox(height: 4),
-          const Text(
-            'LEVEL 7',
-            style: TextStyle(
+          Text(
+            'LEVEL $level',
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.primary,
@@ -97,15 +111,20 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: const LinearProgressIndicator(
-              value: 2400 / 2800,
+            child: LinearProgressIndicator(
+              value: progress,
               backgroundColor: AppColors.progressBg,
-              valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               minHeight: 6,
             ),
           ),
           const SizedBox(height: 6),
-          const Text('2,400 / 2,800 XP', style: AppTextStyles.caption),
+          Text(
+            level >= 10
+                ? '${XpData.totalXp.value} XP'
+                : '$currentLevelXp / $xpNeeded XP',
+            style: AppTextStyles.caption,
+          ),
         ],
       ),
     );
@@ -127,7 +146,7 @@ class HomeScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: continueReadingBooks.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
             itemBuilder: (context, i) {
               final book = continueReadingBooks[i];
               return ContinueReadingCard(
@@ -223,7 +242,7 @@ class HomeScreen extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: books.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) {
           final book = books[index];
           return SizedBox(

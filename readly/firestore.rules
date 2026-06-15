@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /books/{bookId} {
+      allow read: if request.auth != null;
+      // One-time client-side seed: allow creating a book doc only if it
+      // doesn't already exist. No client updates/deletes afterwards.
+      allow create: if request.auth != null && resource == null;
+      allow update, delete: if false;
+    }
+
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /library/{bookId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+  }
+}

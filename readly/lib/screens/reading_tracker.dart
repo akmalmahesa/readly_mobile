@@ -3,8 +3,8 @@ import '../widgets/xp_card.dart';
 import '../widgets/reading_item.dart';
 import '../widgets/update_panel.dart';
 import '../widgets/completed_item.dart';
+import '../data/app_data.dart';
 import '../data/books_data.dart';
-import '../data/xp_data.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
 
@@ -74,28 +74,21 @@ class _ReadingTrackerPageState extends State<ReadingTrackerPage> {
   void handleUpdate() {
     if (selectedBookId == null) return;
 
-    setState(() {
-      justUpdated = true;
+    final book = allBooks.firstWhere((b) => b.id == selectedBookId);
+    AppData.instance.updateProgress(book.id, sliderValue.toInt(), book.pages);
 
-      final book = allBooks.firstWhere((b) => b.id == selectedBookId);
-      final wasCompleted = book.isCompleted;
-
-      book.currentPage = sliderValue.toInt();
-
-      if (book.currentPage == book.pages) {
-        book.isCompleted = true;
-      }
-
-      final earnedXp = book.isCompleted && !wasCompleted ? book.pages : 10;
-      XpData.addXp(earnedXp);
-
-      // notify library change so other screens (badges) can update
-      libraryVersion.value = libraryVersion.value + 1;
-    });
+    setState(() => justUpdated = true);
   }
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: libraryVersion,
+      builder: (context, _, _) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final book = selectedEntry;
     final selectedIndex = selectedBookId == null
         ? -1

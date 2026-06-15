@@ -28,7 +28,7 @@ class XpData {
     5500,
   ];
 
-  static final ValueNotifier<int> totalXp = ValueNotifier<int>(2400);
+  static final ValueNotifier<int> totalXp = ValueNotifier<int>(0);
 
   static int get level => levelForXp(totalXp.value);
 
