@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "268715048593",
+    "project_id": "ngfs-3fe77",
+    "storage_bucket": "ngfs-3fe77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:268715048593:android:0c1dfd5f9ef906ca048930",
+        "android_client_info": {
+          "package_name": "com.membaca.readly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN_v6NTSFCJp7nQ0ypc-gMQQ6U_93J948"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,6 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
-import '../navigator.dart';
+import '../services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -10,9 +11,11 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _emailController = TextEditingController(text: 'alex@readly.app');
-  final _passwordController = TextEditingController(text: 'alex123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLogin = true;
+  bool _loading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -21,11 +24,32 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  void _enterApp() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AppNavigator()),
-      (route) => false,
-    );
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _error = 'Please enter an email and password.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      if (_isLogin) {
+        await AuthService.instance.signIn(email, password);
+      } else {
+        await AuthService.instance.signUp(email, password);
+      }
+      // On success, AuthGate's auth-state stream takes over navigation.
+    } on FirebaseAuthException catch (e) {
+      setState(() => _error = e.message ?? 'Authentication failed.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -52,7 +76,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Login or register to continue as Alex.',
+                  'Login or register to start tracking your reading.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.caption,
                 ),
@@ -70,7 +94,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         isSelected: [_isLogin, !_isLogin],
                         borderRadius: BorderRadius.circular(14),
                         onPressed: (index) {
-                          setState(() => _isLogin = index == 0);
+                          setState(() {
+                            _isLogin = index == 0;
+                            _error = null;
+                          });
                         },
                         selectedColor: Colors.white,
                         fillColor: AppColors.primary,
@@ -84,6 +111,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       const SizedBox(height: 18),
                       TextField(
                         controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
@@ -98,12 +126,20 @@ class _AuthScreenState extends State<AuthScreen> {
                           border: OutlineInputBorder(),
                         ),
                       ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                       const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed: _enterApp,
+                          onPressed: _loading ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -111,17 +147,17 @@ class _AuthScreenState extends State<AuthScreen> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: Text(
-                            _isLogin
-                                ? 'Login as Alex'
-                                : 'Create account & continue',
-                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                                  ),
+                                )
+                              : Text(_isLogin ? 'Login' : 'Create account'),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton(
-                        onPressed: _enterApp,
-                        child: const Text('Skip for now'),
                       ),
                     ],
                   ),
